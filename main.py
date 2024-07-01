@@ -7,7 +7,15 @@ import pandas as pd
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
 
+"""
+beartype:
 
+
+"""
+
+
+# @beartype
+# def format_values(num) -> int:
 def format_values(num):
     """To make data more readable(i.e. 1230000000 => 1.23B)"""
     if abs(num) >= 1e12:
@@ -89,6 +97,8 @@ def clean_company_data(json_file):
         'LongTermDebt'
     ]
     company_dfs = []
+    # 1. do parallelization
+    # 2. keep in dictionary
     for account in account_lists:
         try:
             acc_data = json_file['facts']['us-gaap'][account]['units']['USD']
@@ -140,27 +150,64 @@ def merge_final_df(df_list):
 """
 
 
-def add_valuation_col(cleaned_df):
+def add_valuation1_col(cleaned_df):
     """
     Add valuation column to final df
     :param cleaned_df:
     :return: df: clean df with new valuation column
     """
     cleaned_df["valuation"] = cleaned_df["CashFlows"] + cleaned_df["Cash"]
-    cleaned_df.drop(columns=["Revenues", "AssetsCurrent"], inplace=True)
     valuation_df = cleaned_df
     return valuation_df
+
+
+def add_current_assets_to_liabilities_ratio(cleaned_df):
+    """
+    Add ratio of AssetsCurrent/Liabilities column named ac/l to final df
+    :param cleaned_df:
+    :return: df: return cleaned_df with new column
+    """
+    cleaned_df["ac/l"] = round(cleaned_df["AssetsCurrent"] / cleaned_df["Liabilities"], 2)
+    return cleaned_df
+
+
+def add_cf_to_liabilities_ratio(cleaned_df):
+    """
+    Add ratio of CashFlows/Liabilities column named cf/l to final df
+    :param cleaned_df:
+    :return: df: return cleaned_df with new column
+    """
+    cleaned_df["cf/l"] = round(cleaned_df["CashFlows"] / cleaned_df["Liabilities"], 2)
+    return cleaned_df
+
+
+def drop_unused_columns(cleaned_df):
+    """
+    Drop unused columns from cleaned_df
+    :param cleaned_df:
+    :return: cleaned_df
+    """
+    drop_list = ["Revenues", "AssetsCurrent", "Liabilities"]
+    for col in drop_list:
+        try:
+            cleaned_df.drop(columns=[col], inplace=True)
+        except KeyError as e:
+            print(f"Cannot drop: {e}")
+    return cleaned_df
 
 
 start_time = time.perf_counter()
 
 # print(get_random_ticker())
-tick = "AAPL"
+tick = "MSFT".upper()
 comp_cik = get_cik_of_ticker(tick)
 company_data = get_company_data(comp_cik)
 clean_df_list = clean_company_data(company_data)
 result = merge_final_df(clean_df_list)
-complete_df = add_valuation_col(result)
+complete_df = add_valuation1_col(result)
+complete_df = add_cf_to_liabilities_ratio(complete_df)
+complete_df = add_current_assets_to_liabilities_ratio(complete_df)
+complete_df = drop_unused_columns(complete_df)
 result_df = convert_df_to_str_data(complete_df)
 print(result_df)
 
