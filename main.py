@@ -1,21 +1,12 @@
-import json
+import requests
 import random
 import time
-import os
 import pandas as pd
 
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
 
-"""
-beartype:
 
-
-"""
-
-
-# @beartype
-# def format_values(num) -> int:
 def format_values(num):
     """To make data more readable(i.e. 1230000000 => 1.23B)"""
     if abs(num) >= 1e12:
@@ -33,53 +24,51 @@ def convert_df_to_str_data(merged_df):
     return final_df
 
 
-def get_random_ticker():
+def fetch_cik(company_name=None):
     """
-    Return json data from a random file in depository
-    :return: dict
-    """
-    file_path = "C:\\Users\\cornf\\Documents\\stockTickers.json"
-    with open(file_path, "r") as file:
-        tickers_list = json.load(file)
-    ticker_amount = len(tickers_list)
-    random_num = random.randint(0, ticker_amount)
-    rand_tick = tickers_list[random_num]
-    return rand_tick
+    GET CIK id for the specified company name. If no company name is passed,
+    the function will return a CIK id for a random company.
 
-
-def get_cik_of_ticker(company):
+    :param company_name: str, user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
+    :return: str, CIK id of the specified or random company. Must be a width of 10 characters.
     """
-    Return json data from a random file in depository
-    :return: dict
-    """
-    file_path = "C:\\Users\\cornf\\Documents\\stockTickers.json"
-    with open(file_path, "r") as file:
-        tickers_list = json.load(file)
-    for ticker in tickers_list:
-        if ticker['ticker'] == company:
-            cik_str = f"{ticker['cik_str']:010}"
-            return cik_str
-
-
-def get_company_data(ticker):
-    """
-    Searches directory and opens file for requested ticker data.
-
-    :param ticker: str: The ticker of the company.
-    :return: dict or None: The company data if found, otherwise None.
-    """
-    directory_path = 'C:/Users/cornf/Documents/companyFacts/'
-    specific_file = f"CIK{ticker}.json"
-    file_path = os.path.join(directory_path, specific_file)
+    headers = {'User-Agent': 'mr.muffin235@gmail.com'}
+    # headers = {'User-Agent': 'YourEmail@example.com'}
+    get_url = "https://www.sec.gov/files/company_tickers.json"
 
     try:
-        with open(file_path, "r") as f:
-            data = json.load(f)
-            return data
-    except FileNotFoundError:
-        print(f"File {specific_file} not found")
-    except json.JSONDecodeError:
-        print(f"Error decoding JSON from file {specific_file}")
+        tickers_data = requests.get(get_url, headers=headers)
+        tickers_json = tickers_data.json()
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return None
+
+    company_name = str(company_name.upper())
+    if company_name:
+        for obj in tickers_json.values():
+            if obj["ticker"] == company_name:
+                return f'{obj["cik_str"]:010}'
+        print(f"Company with ticker {company_name} not found.")
+        return None
+    else:
+        random_obj = random.choice(list(tickers_json.values()))
+        return f'{random_obj["cik_str"]:010}'
+
+
+def fetch_sec_api(cik_str):
+    """
+    send GET request to the EDGAR database where SEC filings are stored.
+    returns json
+    """
+    try:
+        headers = {'User-Agent': 'mr.muffin235@gmail.com'}
+        # headers = {'User-Agent': 'YourEmail@example.com'}
+        get_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik_str}.json"
+        sec_data = requests.get(get_url, headers=headers)
+        return sec_data.json()
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return
 
 
 def clean_company_data(json_file):
@@ -198,11 +187,11 @@ def drop_unused_columns(cleaned_df):
 
 start_time = time.perf_counter()
 
-# print(get_random_ticker())
 tick = "MSFT".upper()
-comp_cik = get_cik_of_ticker(tick)
-company_data = get_company_data(comp_cik)
+comp_cik = fetch_cik(tick)
+company_data = fetch_sec_api(comp_cik)
 clean_df_list = clean_company_data(company_data)
+
 result = merge_final_df(clean_df_list)
 complete_df = add_valuation1_col(result)
 complete_df = add_cf_to_liabilities_ratio(complete_df)
@@ -212,16 +201,4 @@ result_df = convert_df_to_str_data(complete_df)
 print(result_df)
 
 end_time = time.perf_counter()
-print(f"Runtime: {end_time - start_time: .5f}s")
-
-"""
-For LEVI I looked at: 
-    - make new file system and put current code on there and start using git
-    - 'add column for enteprise value for each year'
-        - [(3 year ave cash flow) + (3 year ave cash)] - (3 year ave Liabilities) 
-
-    - 'Get Market Cap'
-    - 'Compare valuation to marketcap'
-
-    git init
-"""
+print(f"\nCode Runtime: {end_time - start_time: .2f}s")
