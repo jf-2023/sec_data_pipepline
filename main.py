@@ -2,6 +2,9 @@ import requests
 import random
 import time
 import pandas as pd
+import cProfile
+import pstats
+from pstats import SortKey
 
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
@@ -32,8 +35,7 @@ def fetch_cik(company_name=None):
     :param company_name: str, user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
     :return: str, CIK id of the specified or random company. Must be a width of 10 characters.
     """
-    headers = {'User-Agent': 'mr.muffin235@gmail.com'}
-    # headers = {'User-Agent': 'YourEmail@example.com'}
+    headers = {'User-Agent': 'YourEmail@example.com'}
     get_url = "https://www.sec.gov/files/company_tickers.json"
 
     try:
@@ -61,8 +63,7 @@ def fetch_sec_api(cik_str):
     returns json
     """
     try:
-        headers = {'User-Agent': 'mr.muffin235@gmail.com'}
-        # headers = {'User-Agent': 'YourEmail@example.com'}
+        headers = {'User-Agent': 'YourEmail@example.com'}
         get_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik_str}.json"
         sec_data = requests.get(get_url, headers=headers)
         return sec_data.json()
@@ -71,24 +72,15 @@ def fetch_sec_api(cik_str):
         return
 
 
-def clean_company_data(json_file):
+def clean_company_data(json_file, account_list):
     """
-    clean company json data and return cleaned df
-    :param json_file: dict: financial data for company
-    :return: list: list of dataframes for unique accounts
+        clean company json data and return cleaned df
+        :param json_file: dict: financial data for company
+        :param account_list: list of account that user would like to add to df e.g 'Assets', 'Liabilities', etc.
+        :return: list: list of dataframes for unique accounts
     """
-    account_lists = [
-        'NetCashProvidedByUsedInOperatingActivities',
-        'CashAndCashEquivalentsAtCarryingValue',
-        'Liabilities',
-        'AssetsCurrent',
-        'Revenues',
-        'LongTermDebt'
-    ]
     company_dfs = []
-    # 1. do parallelization
-    # 2. keep in dictionary
-    for account in account_lists:
+    for account in account_list:
         try:
             acc_data = json_file['facts']['us-gaap'][account]['units']['USD']
             df = pd.DataFrame.from_dict(acc_data)
@@ -105,78 +97,18 @@ def clean_company_data(json_file):
 
 
 def merge_final_df(df_list):
-    """
-    merge list of dfs and return df
-    :param df_list: list: list of dataframes for unique accounts for the company
-    :return: df: formatted df of company financials
-    """
+    """ merge list of dfs and return df """
     cleaned_df_list = [df for df in df_list if isinstance(df, pd.DataFrame) and not df.empty]
 
     merged_df = cleaned_df_list[0]
-    # Merge each DataFrame in the list on the 'year' column
     for cdf in cleaned_df_list[1:]:
         merged_df = pd.merge(merged_df, cdf, on='year', how='outer')
 
-    merged_df.rename(columns={
-        'NetCashProvidedByUsedInOperatingActivities': 'CashFlows',
-        'CashAndCashEquivalentsAtCarryingValue': 'Cash'
-    }, inplace=True)
     return merged_df
 
-    # Filter out any empty dictionaries or non-DataFrame objects from the list
 
-
-"""
-    clean_df_list = [df for df in df_list if isinstance(df, pd.DataFrame) and not df.empty]
-
-    if not clean_df_list:
-        return pd.DataFrame()  # Return an empty DataFrame if no valid DataFrames found
-
-    combined_df = pd.concat(clean_df_list, ignore_index=True)
-    combined_df = combined_df.applymap(format_values)
-    return combined_df
-
-"""
-
-
-def add_valuation1_col(cleaned_df):
-    """
-    Add valuation column to final df
-    :param cleaned_df:
-    :return: df: clean df with new valuation column
-    """
-    cleaned_df["valuation"] = cleaned_df["CashFlows"] + cleaned_df["Cash"]
-    valuation_df = cleaned_df
-    return valuation_df
-
-
-def add_current_assets_to_liabilities_ratio(cleaned_df):
-    """
-    Add ratio of AssetsCurrent/Liabilities column named ac/l to final df
-    :param cleaned_df:
-    :return: df: return cleaned_df with new column
-    """
-    cleaned_df["ac/l"] = round(cleaned_df["AssetsCurrent"] / cleaned_df["Liabilities"], 2)
-    return cleaned_df
-
-
-def add_cf_to_liabilities_ratio(cleaned_df):
-    """
-    Add ratio of CashFlows/Liabilities column named cf/l to final df
-    :param cleaned_df:
-    :return: df: return cleaned_df with new column
-    """
-    cleaned_df["cf/l"] = round(cleaned_df["CashFlows"] / cleaned_df["Liabilities"], 2)
-    return cleaned_df
-
-
-def drop_unused_columns(cleaned_df):
-    """
-    Drop unused columns from cleaned_df
-    :param cleaned_df:
-    :return: cleaned_df
-    """
-    drop_list = ["Revenues", "AssetsCurrent", "Liabilities"]
+def drop_columns(cleaned_df, drop_list):
+    """ Drop specified columns in drop_list from cleaned_df """
     for col in drop_list:
         try:
             cleaned_df.drop(columns=[col], inplace=True)
@@ -185,20 +117,79 @@ def drop_unused_columns(cleaned_df):
     return cleaned_df
 
 
-start_time = time.perf_counter()
+def rename_columns(cleaned_df, rename_dict):
+    """
+    Rename specified columns in cleaned_df
+    :param cleaned_df:
+    :param rename_dict: key is old name, value is new name e.g. {'original_name': 'rename_value'}
+    """
+    try:
+        cleaned_df.rename(columns=rename_dict, inplace=True)
+    except KeyError as e:
+        print(f"Cannot rename: {e}")
+    return cleaned_df
 
-tick = "MSFT".upper()
-comp_cik = fetch_cik(tick)
-company_data = fetch_sec_api(comp_cik)
-clean_df_list = clean_company_data(company_data)
 
-result = merge_final_df(clean_df_list)
-complete_df = add_valuation1_col(result)
-complete_df = add_cf_to_liabilities_ratio(complete_df)
-complete_df = add_current_assets_to_liabilities_ratio(complete_df)
-complete_df = drop_unused_columns(complete_df)
-result_df = convert_df_to_str_data(complete_df)
-print(result_df)
+def add_valuation1_col(cleaned_df):
+    """ Add valuation column to final df """
+    cleaned_df["valuation"] = (20 * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
+    valuation_df = cleaned_df
+    return valuation_df
 
-end_time = time.perf_counter()
-print(f"\nCode Runtime: {end_time - start_time: .2f}s")
+
+def add_current_assets_to_liabilities_ratio(cleaned_df):
+    """ Add ratio of AssetsCurrent/Liabilities column named ac/l to final df """
+    cleaned_df["ac/l"] = round(cleaned_df["AssetsCurrent"] / cleaned_df["Liabilities"], 2)
+    return cleaned_df
+
+
+def add_cf_to_liabilities_ratio(cleaned_df):
+    """ Add ratio of CashFlows/Liabilities column named cf/l to final df """
+    cleaned_df["cf/l"] = round(cleaned_df["CashFlows"] / cleaned_df["Liabilities"], 2)
+    return cleaned_df
+
+
+def main():
+    start_time = time.perf_counter()
+
+    tick = "META"
+    specified_accounts = [
+        'NetCashProvidedByUsedInOperatingActivities',
+        'CashAndCashEquivalentsAtCarryingValue',
+        'Liabilities',
+        'AssetsCurrent',
+        'Revenues',
+        'LongTermDebt'
+    ]
+    accounts_to_drop = [
+        "Revenues",
+        "AssetsCurrent",
+        "Liabilities"
+    ]
+    accounts_to_rename = {
+            'NetCashProvidedByUsedInOperatingActivities': 'CashFlows',
+            'CashAndCashEquivalentsAtCarryingValue': 'Cash'
+        }
+
+    comp_cik = fetch_cik(tick)
+    company_data = fetch_sec_api(comp_cik)
+    clean_df_list = clean_company_data(company_data, specified_accounts)
+    result = merge_final_df(clean_df_list)
+    result = rename_columns(result, accounts_to_rename)
+    result = add_valuation1_col(result)
+    result = add_cf_to_liabilities_ratio(result)
+    result = add_current_assets_to_liabilities_ratio(result)
+    result = drop_columns(result, accounts_to_drop)
+    result_df = convert_df_to_str_data(result)
+    print(result_df)
+
+    end_time = time.perf_counter()
+    print(f"\nCode Runtime: {end_time - start_time: .2f}s\n")
+
+
+if __name__ == "__main__":
+    with cProfile.Profile() as profile:
+        main()
+
+    p = pstats.Stats(profile)
+    p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats('main.py', 6)
