@@ -39,7 +39,7 @@ async def fetch_all_files_async(directory, request_limit):
     await asyncio.gather(*tasks)
 
 
-def fetch_file_concurrent(file_path):
+def fetch_file(file_path):
     """Helper function to fetch a single file for threading and multiprocessing"""
     try:
         with open(file_path, "r") as f:
@@ -52,7 +52,7 @@ def fetch_all_files_threading(directory, request_limit):
     """Opens all files in a selected directory using threading"""
     files = os.listdir(directory)
     with ThreadPoolExecutor() as executor:
-        list(tqdm(executor.map(fetch_file_concurrent,
+        list(tqdm(executor.map(fetch_file,
                                [os.path.join(directory, file) for file in files[:request_limit]]),
                   total=request_limit, desc='Threading Progress'))
 
@@ -61,7 +61,7 @@ def fetch_all_files_multiprocessing(directory, request_limit):
     """Opens all files in a selected directory using multiprocessing"""
     files = os.listdir(directory)
     with ProcessPoolExecutor() as executor:
-        list(tqdm(executor.map(fetch_file_concurrent,
+        list(tqdm(executor.map(fetch_file,
                                [os.path.join(directory, file) for file in files[:request_limit]]),
                   total=request_limit, desc='Multiprocessing Progress'))
 
