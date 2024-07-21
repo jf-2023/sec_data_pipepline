@@ -18,13 +18,20 @@ Executes the core functionality of the application. It returns a pandas DataFram
 
 ### `scripts/`
 
-Contains different methods for benchmarking data fetching and data cleaning.
+Contains methods for benchmarking data fetching and data cleaning.
 
-### `test/`
+- `data_fetching.py`: Completed. Contains functions to fetch data locally from the downloaded zip file from the SEC website. (Read the **NOTE** section below)
+- `data_cleaning.py`: In progress. Includes placeholder functions and comments outlining the intended data cleaning processes.
+- `utils.py`: Planned. Placeholder for utility functions to support data fetching and cleaning.
+
+### `tests/`
 
 Includes tests for the data fetching and data cleaning functions in the `scripts` directory.
 
-**NOTE:** Unlike `main.py`, the `scripts` and `test` directories will only work for those who have downloaded the `companyfacts.zip` file provided by the SEC at the bottom of the page [here](https://www.sec.gov/search-filings/edgar-application-programming-interfaces). Be sure to change the directory to where you stored your zip file. It is recommended to extract the zip file beforehand to speed up loading times.
+- `test_data_fetching.py`: Planned. Placeholder for tests related to data fetching functions.
+- `test_data_cleaning.py`: Planned. Placeholder for tests related to data cleaning functions.
+
+**NOTE:** Unlike `main.py`, the `scripts` and `tests` directories will only work for those who have downloaded the `companyfacts.zip` file provided by the SEC at the bottom of the page [here](https://www.sec.gov/search-filings/edgar-application-programming-interfaces). Be sure to change the directory to where you stored your zip file. It is recommended to extract the zip file beforehand to speed up loading times.
 
 ## Usage
 
