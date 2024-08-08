@@ -6,9 +6,6 @@ import cProfile
 import pstats
 from pstats import SortKey
 
-pd.set_option('display.max_rows', None)  # Display all rows
-pd.set_option('display.max_columns', None)  # Display all columns
-
 
 def format_values(num):
     """To make data more readable(i.e. 1230000000 => 1.23B)"""
@@ -181,7 +178,9 @@ def main():
     result = add_current_assets_to_liabilities_ratio(result)
     result = drop_columns(result, accounts_to_drop)
     result_df = convert_df_to_str_data(result)
-    print(result_df)
+
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(result_df)
 
     end_time = time.perf_counter()
     print(f"\nCode Runtime: {end_time - start_time: .2f}s\n")
