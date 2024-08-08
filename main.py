@@ -18,15 +18,6 @@ def format_values(num):
             return f"{num / threshold:.2f}{suffix}"
     return num
 
-    if abs(num) >= 1e12:
-        return "{:.2f}T".format(num / 1e12)
-    elif abs(num) >= 1e9:
-        return "{:.2f}B".format(num / 1e9)
-    elif abs(num) >= 1e6:
-        return "{:.2f}M".format(num / 1e6)
-    else:
-        return num
-
 
 def _format_values(merged_df):
     return merged_df.map(format_values)
@@ -157,7 +148,7 @@ def add_cf_to_liabilities_ratio(cleaned_df):
 def main():
     start_time = time.perf_counter()
 
-    tick = "AAPL"
+    tick = "META"
     specified_accounts = [
         'NetCashProvidedByUsedInOperatingActivities',
         'CashAndCashEquivalentsAtCarryingValue',
