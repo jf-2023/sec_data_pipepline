@@ -12,6 +12,12 @@ pd.set_option('display.max_columns', None)  # Display all columns
 
 def format_values(num):
     """To make data more readable(i.e. 1230000000 => 1.23B)"""
+    format_tuples = [(1e12, 'T'), (1e9, 'B'), (1e6, 'M')]
+    for threshold, suffix in format_tuples:
+        if abs(num) >= threshold:
+            return f"{num / threshold:.2f}{suffix}"
+    return num
+
     if abs(num) >= 1e12:
         return "{:.2f}T".format(num / 1e12)
     elif abs(num) >= 1e9:
@@ -22,9 +28,8 @@ def format_values(num):
         return num
 
 
-def convert_df_to_str_data(merged_df):
-    final_df = merged_df.map(format_values)
-    return final_df
+def _format_values(merged_df):
+    return merged_df.map(format_values)
 
 
 def fetch_cik(company_name=None):
@@ -152,7 +157,7 @@ def add_cf_to_liabilities_ratio(cleaned_df):
 def main():
     start_time = time.perf_counter()
 
-    tick = "META"
+    tick = "AAPL"
     specified_accounts = [
         'NetCashProvidedByUsedInOperatingActivities',
         'CashAndCashEquivalentsAtCarryingValue',
@@ -180,7 +185,7 @@ def main():
     result = add_cf_to_liabilities_ratio(result)
     result = add_current_assets_to_liabilities_ratio(result)
     result = drop_columns(result, accounts_to_drop)
-    result_df = convert_df_to_str_data(result)
+    result_df = _format_values(result)
     print(result_df)
 
     end_time = time.perf_counter()
