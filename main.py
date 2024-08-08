@@ -27,7 +27,7 @@ def convert_df_to_str_data(merged_df):
     return final_df
 
 
-def fetch_cik(company_name=None):
+def fetch_cik(company_name=""):
     """
     GET CIK id for the specified company name. If no company name is passed,
     the function will return a CIK id for a random company.
