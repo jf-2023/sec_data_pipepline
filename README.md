@@ -1,14 +1,15 @@
 # Securities and Exchange Commission (SEC) Data Processing Pipeline
 
-This project processes and analyzes financial data from various companies. It includes data fetching, cleaning, processing, and visualization.
+This project processes financial data from various publicallly traded companies that report to the SEC. It includes data fetching, cleaning, and transformation.
 
 ## Features
 
 - Fetches financial data from the SEC API
-- Cleans and processes financial data
+- Cleans financial data
 - Returns a pandas DataFrame with 10-K data
-- Benchmarks data fetching and cleaning methods
-- Includes tests for data fetching and cleaning
+- Benchmarks data fetching methods
+- Will include benchmarks for data cleaning methods (in progress)
+- Will include tests for data fetching and cleaning (planned)
 
 ## File Structure
 
@@ -26,7 +27,7 @@ Contains methods for benchmarking data fetching and data cleaning.
 
 ### `tests/`
 
-Includes tests for the data fetching and data cleaning functions in the `scripts` directory.
+Will include tests for the data fetching and data cleaning functions in the `scripts` directory. (planned)
 
 - `test_data_fetching.py`: Planned. Placeholder for tests related to data fetching functions.
 - `test_data_cleaning.py`: Planned. Placeholder for tests related to data cleaning functions.
