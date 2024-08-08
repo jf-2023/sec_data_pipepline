@@ -8,3 +8,4 @@ aiofiles
 tqdm
 pymongo
 requests
+scipy
