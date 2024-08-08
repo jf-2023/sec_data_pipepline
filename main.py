@@ -27,13 +27,13 @@ def convert_df_to_str_data(merged_df):
     return final_df
 
 
-def fetch_cik(company_name=""):
+def fetch_cik(company_name: str = "") -> str:
     """
-    GET CIK id for the specified company name. If no company name is passed,
+    get CIK id for the specified company name. If no company name is passed,
     the function will return a CIK id for a random company.
 
-    :param company_name: str, user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
-    :return: str, CIK id of the specified or random company. Must be a width of 10 characters.
+    :param company_name: user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
+    :return: CIK id of the specified or random company, zero padded to 10 characters.
     """
     headers = {'User-Agent': 'YourEmail@example.com'}
     get_url = "https://www.sec.gov/files/company_tickers.json"
