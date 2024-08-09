@@ -39,7 +39,7 @@ def fetch_cik(company_name: str = "") -> str:
     the function will return a CIK id for a random company.
 
     :param company_name: user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
-    :return: CIK id of the specified or random company, zero padded to 10 characters.
+    :return: CIK id of the specified or random company, right zero padded to 10 characters.
     """
     headers = {'User-Agent': user_agent}
     get_url = "https://www.sec.gov/files/company_tickers.json"
@@ -49,15 +49,15 @@ def fetch_cik(company_name: str = "") -> str:
         tickers_json = tickers_data.json()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
-        return None
+        return ""
 
-    company_name = str(company_name.upper())
+    company_name = company_name.upper()
     if company_name:
         for obj in tickers_json.values():
             if obj["ticker"] == company_name:
                 return f'{obj["cik_str"]:010}'
         print(f"Company with ticker {company_name} not found.")
-        return None
+        return ""
     else:
         random_obj = random.choice(list(tickers_json.values()))
         return f'{random_obj["cik_str"]:010}'
@@ -158,7 +158,7 @@ def add_cf_to_liabilities_ratio(cleaned_df):
 def main():
     start_time = time.perf_counter()
 
-    tick = "META"
+    tick = ""
     specified_accounts = [
         'NetCashProvidedByUsedInOperatingActivities',
         'CashAndCashEquivalentsAtCarryingValue',
