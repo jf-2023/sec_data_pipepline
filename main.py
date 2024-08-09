@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 import requests
 import random
 import time
@@ -5,6 +7,10 @@ import pandas as pd
 import cProfile
 import pstats
 from pstats import SortKey
+
+load_dotenv()
+
+user_agent = os.getenv('EMAIL_ADDRESS')
 
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
@@ -35,7 +41,7 @@ def fetch_cik(company_name: str = "") -> str:
     :param company_name: user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
     :return: CIK id of the specified or random company, zero padded to 10 characters.
     """
-    headers = {'User-Agent': 'YourEmail@example.com'}
+    headers = {'User-Agent': user_agent}
     get_url = "https://www.sec.gov/files/company_tickers.json"
 
     try:
