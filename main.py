@@ -149,6 +149,18 @@ def add_cf_to_liabilities_ratio(cleaned_df):
     return cleaned_df
 
 
+def elapsed(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"{func.__name__}() runtime: {elapsed_time:.2f}s")
+        return result
+    return wrapper
+
+
+@elapsed
 def process_financial_data(ticker = "META"):
     specified_accounts = [
         'NetCashProvidedByUsedInOperatingActivities',
@@ -182,9 +194,5 @@ def process_financial_data(ticker = "META"):
 
 
 if __name__ == "__main__":
-    with cProfile.Profile() as profile:
-        financials_df = process_financial_data(ticker="META")
-        print(financials_df)
-
-    p = pstats.Stats(profile)
-    p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats('main.py', 6)
+    financials_df = process_financial_data(ticker="META")
+    print(financials_df)
