@@ -5,6 +5,7 @@ import pandas as pd
 import cProfile
 import pstats
 from pstats import SortKey
+import logging
 
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
@@ -149,13 +150,16 @@ def add_cf_to_liabilities_ratio(cleaned_df):
     return cleaned_df
 
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
 def elapsed(func):
     def wrapper(*args, **kwargs):
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
         elapsed_time = end_time - start_time
-        print(f"{func.__name__}() runtime: {elapsed_time:.2f}s")
+        logging.info(f"{func.__name__}() runtime: {elapsed_time:.2f}s")
         return result
     return wrapper
 
