@@ -74,7 +74,7 @@ def fetch_sec_api(cik_str):
 
 def clean_company_data(json_file, account_list):
     """
-        clean company json data and return cleaned df
+        clean company JSON data and return a list of DataFrames
         :param json_file: dict: financial data for company
         :param account_list: list of account that user would like to add to df e.g 'Assets', 'Liabilities', etc.
         :return: list: list of dataframes for unique accounts
@@ -86,9 +86,9 @@ def clean_company_data(json_file, account_list):
             df = pd.DataFrame.from_dict(acc_data)
             df = df[df['fp'] == "FY"]
             df['year'] = pd.to_datetime(df['end']).dt.year
-            df.drop_duplicates(subset=['year'], keep="last", inplace=True)
+            df = df.drop_duplicates(subset=['year'], keep="last")
             df = df[['year', 'val']]
-            df.rename(columns={'val': account}, inplace=True)
+            df = df.rename(columns={'val': account})
             company_dfs.append(df)
         except KeyError as e:
             print(f"df could not be processed for: {e}")
@@ -111,7 +111,7 @@ def drop_columns(cleaned_df, drop_list):
     """ Drop specified columns in drop_list from cleaned_df """
     for col in drop_list:
         try:
-            cleaned_df.drop(columns=[col], inplace=True)
+            cleaned_df = cleaned_df.drop(columns=[col])
         except KeyError as e:
             print(f"Cannot drop: {e}")
     return cleaned_df
