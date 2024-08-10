@@ -92,7 +92,7 @@ def clean_company_data(json_file, account_list):
             company_dfs.append(df)
         except KeyError as e:
             print(f"df could not be processed for: {e}")
-            company_dfs.append({})
+            company_dfs.append(pd.DataFrame({}))
     return company_dfs
 
 
