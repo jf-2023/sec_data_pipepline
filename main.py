@@ -149,10 +149,7 @@ def add_cf_to_liabilities_ratio(cleaned_df):
     return cleaned_df
 
 
-def main():
-    start_time = time.perf_counter()
-
-    tick = "META"
+def main(ticker = "META"):
     specified_accounts = [
         'NetCashProvidedByUsedInOperatingActivities',
         'CashAndCashEquivalentsAtCarryingValue',
@@ -171,7 +168,7 @@ def main():
             'CashAndCashEquivalentsAtCarryingValue': 'Cash'
         }
 
-    comp_cik = fetch_cik(tick)
+    comp_cik = fetch_cik(ticker)
     company_data = fetch_sec_api(comp_cik)
     clean_df_list = clean_company_data(company_data, specified_accounts)
     result = merge_final_df(clean_df_list)
@@ -181,15 +178,13 @@ def main():
     result = add_current_assets_to_liabilities_ratio(result)
     result = drop_columns(result, accounts_to_drop)
     result_df = convert_df_to_str_data(result)
-    print(result_df)
-
-    end_time = time.perf_counter()
-    print(f"\nCode Runtime: {end_time - start_time: .2f}s\n")
+    return result_df
 
 
 if __name__ == "__main__":
     with cProfile.Profile() as profile:
-        main()
+        financials_df = main(ticker="META")
+        print(financials_df)
 
     p = pstats.Stats(profile)
     p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats('main.py', 6)
