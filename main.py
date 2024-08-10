@@ -131,7 +131,11 @@ def rename_columns(cleaned_df, rename_dict):
 
 
 def add_valuation1_col(cleaned_df):
-    """ Add valuation column to final df """
+    """ 
+    Adds a 'valuation' column to the DataFrame where:
+    - EARNINGS_MULTIPLIER is an arbitray multiple used to estimate company value based on future earnings.
+    - valuation = (YEARS_TO_RECOVER_RETURN * CashFlows) + Cash - LongTermDebt 
+    """
     EARNINGS_MULTIPLIER = 20
     cleaned_df["valuation"] = (EARNINGS_MULTIPLIER * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
     valuation_df = cleaned_df
