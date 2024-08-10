@@ -149,7 +149,7 @@ def add_cf_to_liabilities_ratio(cleaned_df):
     return cleaned_df
 
 
-def main(ticker = "META"):
+def process_financial_data(ticker = "META"):
     specified_accounts = [
         'NetCashProvidedByUsedInOperatingActivities',
         'CashAndCashEquivalentsAtCarryingValue',
@@ -183,7 +183,7 @@ def main(ticker = "META"):
 
 if __name__ == "__main__":
     with cProfile.Profile() as profile:
-        financials_df = main(ticker="META")
+        financials_df = process_financial_data(ticker="META")
         print(financials_df)
 
     p = pstats.Stats(profile)
