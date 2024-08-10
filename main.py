@@ -11,7 +11,21 @@ pd.set_option('display.max_columns', None)  # Display all columns
 
 
 def format_values(num):
-    """To make data more readable(i.e. 1230000000 => 1.23B)"""
+    """
+    To make data more readable
+    
+    Examples:
+    >>> format_values(1230000000000)
+    '1.23T'
+    >>> format_values(4560000000)
+    '4.56B'
+    >>> format_values(7890000)
+    '7.89M'
+    >>> format_values(123)
+    '123'
+    >>> format_values(-7890000000)
+    '-7.89B'
+    """
     format_tuples = [(1e12, 'T'), (1e9, 'B'), (1e6, 'M')]
     for threshold, suffix in format_tuples:
         if abs(num) >= threshold:
