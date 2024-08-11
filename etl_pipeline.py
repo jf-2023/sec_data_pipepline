@@ -117,19 +117,6 @@ def drop_columns(cleaned_df, drop_list):
     return cleaned_df
 
 
-def rename_columns(cleaned_df, rename_dict):
-    """
-    Rename specified columns in cleaned_df
-    :param cleaned_df:
-    :param rename_dict: key is old name, value is new name e.g. {'original_name': 'rename_value'}
-    """
-    try:
-        cleaned_df.rename(columns=rename_dict, inplace=True)
-    except KeyError as e:
-        print(f"Cannot rename: {e}")
-    return cleaned_df
-
-
 def add_valuation1_col(cleaned_df):
     """ Add valuation column to final df """
     cleaned_df["valuation"] = (20 * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
@@ -175,7 +162,7 @@ def main():
     company_data = fetch_sec_api(comp_cik)
     clean_df_list = clean_company_data(company_data, specified_accounts)
     result = merge_final_df(clean_df_list)
-    result = rename_columns(result, accounts_to_rename)
+    result = result.rename(columns= accounts_to_rename)
     result = add_valuation1_col(result)
     result = add_cf_to_liabilities_ratio(result)
     result = add_current_assets_to_liabilities_ratio(result)
