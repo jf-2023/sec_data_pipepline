@@ -114,6 +114,34 @@ def drop_columns(cleaned_df, drop_list):
     return cleaned_df
 
 
+<<<<<<< HEAD:main.py
+def rename_columns(cleaned_df, rename_dict):
+    """
+    Rename specified columns in cleaned_df
+    :param cleaned_df:
+    :param rename_dict: key is old name, value is new name e.g. {'original_name': 'rename_value'}
+    """
+    try:
+        cleaned_df.rename(columns=rename_dict, inplace=True)
+    except KeyError as e:
+        print(f"Cannot rename: {e}")
+    return cleaned_df
+
+
+def add_extra_columns(cleaned_df):
+    """ 
+    Adds 'valuation', 'ac/l', and 'cf/l' columns to the DataFrame where:
+    - EARNINGS_MULTIPLIER is an arbitray multiple used to estimate company value based on future earnings.
+    - 'valuation': (YEARS_TO_RECOVER_RETURN * CashFlows) + Cash - LongTermDebt 
+    - 'ac/l': Ratio of AssetsCurrent to Liabilities.
+    - 'cf/l': Ratio of CashFlows to Liabilities.
+    """
+    # Add 'valution' column
+    EARNINGS_MULTIPLIER = 20
+    cleaned_df["valuation"] = (EARNINGS_MULTIPLIER * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
+    
+    # Add 'valution' column
+=======
 def add_valuation1_col(cleaned_df):
     """ Add valuation column to final df """
     cleaned_df["valuation"] = (20 * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
@@ -123,13 +151,12 @@ def add_valuation1_col(cleaned_df):
 
 def add_current_assets_to_liabilities_ratio(cleaned_df):
     """ Add ratio of AssetsCurrent/Liabilities column named ac/l to final df """
+>>>>>>> master:etl_pipeline.py
     cleaned_df["ac/l"] = round(cleaned_df["AssetsCurrent"] / cleaned_df["Liabilities"], 2)
-    return cleaned_df
 
-
-def add_cf_to_liabilities_ratio(cleaned_df):
-    """ Add ratio of CashFlows/Liabilities column named cf/l to final df """
+    # Add 'valution' column
     cleaned_df["cf/l"] = round(cleaned_df["CashFlows"] / cleaned_df["Liabilities"], 2)
+
     return cleaned_df
 
 
@@ -159,10 +186,15 @@ def main():
     company_data = fetch_sec_api(comp_cik)
     clean_df_list = clean_company_data(company_data, specified_accounts)
     result = merge_final_df(clean_df_list)
+<<<<<<< HEAD:main.py
+    result = rename_columns(result, accounts_to_rename)
+    result = add_extra_columns(result)
+=======
     result = result.rename(columns= accounts_to_rename)
     result = add_valuation1_col(result)
     result = add_cf_to_liabilities_ratio(result)
     result = add_current_assets_to_liabilities_ratio(result)
+>>>>>>> master:etl_pipeline.py
     result = drop_columns(result, accounts_to_drop)
     result_df = convert_df_to_str_data(result)
 
