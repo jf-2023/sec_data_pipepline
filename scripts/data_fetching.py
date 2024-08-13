@@ -1,16 +1,17 @@
-import os
-import json
-import time
 import asyncio
+import json
+import os
+import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+
 import aiofiles
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 
 def fetch_all_files(directory, request_limit):
     """Opens all files in a selected directory synchronously"""
     files = os.listdir(directory)
-    for file in tqdm(files[:request_limit], desc='Synchronous Progress'):
+    for file in tqdm(files[:request_limit], desc="Synchronous Progress"):
         full_path = os.path.join(directory, file)
         try:
             with open(full_path, "r") as f:
@@ -33,7 +34,7 @@ async def fetch_all_files_async(directory, request_limit):
     """Opens all files in a selected directory asynchronously"""
     files = os.listdir(directory)
     tasks = []
-    for file in tqdm(files[:request_limit], desc='Asynchronous Progress'):
+    for file in tqdm(files[:request_limit], desc="Asynchronous Progress"):
         full_path = os.path.join(directory, file)
         tasks.append(fetch_file_async(full_path))
     await asyncio.gather(*tasks)
@@ -52,18 +53,32 @@ def fetch_all_files_threading(directory, request_limit):
     """Opens all files in a selected directory using threading"""
     files = os.listdir(directory)
     with ThreadPoolExecutor() as executor:
-        list(tqdm(executor.map(fetch_file,
-                               [os.path.join(directory, file) for file in files[:request_limit]]),
-                  total=request_limit, desc='Threading Progress'))
+        list(
+            tqdm(
+                executor.map(
+                    fetch_file,
+                    [os.path.join(directory, file) for file in files[:request_limit]],
+                ),
+                total=request_limit,
+                desc="Threading Progress",
+            )
+        )
 
 
 def fetch_all_files_multiprocessing(directory, request_limit):
     """Opens all files in a selected directory using multiprocessing"""
     files = os.listdir(directory)
     with ProcessPoolExecutor() as executor:
-        list(tqdm(executor.map(fetch_file,
-                               [os.path.join(directory, file) for file in files[:request_limit]]),
-                  total=request_limit, desc='Multiprocessing Progress'))
+        list(
+            tqdm(
+                executor.map(
+                    fetch_file,
+                    [os.path.join(directory, file) for file in files[:request_limit]],
+                ),
+                total=request_limit,
+                desc="Multiprocessing Progress",
+            )
+        )
 
 
 def main():
