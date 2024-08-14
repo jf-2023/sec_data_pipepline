@@ -1,9 +1,17 @@
-import logging
+import cProfile
+import os
+import pstats
 import random
 import time
+from pstats import SortKey
 
 import pandas as pd
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+user_agent = os.getenv("EMAIL_ADDRESS")
 
 pd.set_option("display.max_rows", None)  # Display all rows
 pd.set_option("display.max_columns", None)  # Display all columns
@@ -26,15 +34,15 @@ def convert_df_to_str_data(merged_df):
     return final_df
 
 
-def fetch_cik(company_name=None):
+def fetch_cik(company_name: str = "") -> str:
     """
-    GET CIK id for the specified company name. If no company name is passed,
+    get CIK id for the specified company name. If no company name is passed,
     the function will return a CIK id for a random company.
 
-    :param company_name: str, user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
-    :return: str, CIK id of the specified or random company. Must be a width of 10 characters.
+    :param company_name: user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
+    :return: CIK id of the specified or random company, right zero padded to 10 characters.
     """
-    headers = {"User-Agent": "YourEmail@example.com"}
+    headers = {"User-Agent": user_agent}
     get_url = "https://www.sec.gov/files/company_tickers.json"
 
     try:
@@ -42,15 +50,15 @@ def fetch_cik(company_name=None):
         tickers_json = tickers_data.json()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
-        return None
+        return ""
 
-    company_name = str(company_name.upper())
+    company_name = company_name.upper()
     if company_name:
         for obj in tickers_json.values():
             if obj["ticker"] == company_name:
                 return f'{obj["cik_str"]:010}'
         print(f"Company with ticker {company_name} not found.")
-        return None
+        return ""
     else:
         random_obj = random.choice(list(tickers_json.values()))
         return f'{random_obj["cik_str"]:010}'
