@@ -61,16 +61,18 @@ def fetch_cik(company_name=None):
 def fetch_sec_api(cik_str):
     """
     send GET request to the EDGAR database where SEC filings are stored.
-    returns json
+    Returns the response data as a JSON object if the request is successful.
+    Raises an exception if the request fails.
     """
     try:
         headers = {'User-Agent': 'YourEmail@example.com'}
         get_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik_str}.json"
         sec_data = requests.get(get_url, headers=headers)
+        sec_data.raise_for_status()
         return sec_data.json()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
-        return
+                
 
 
 def clean_company_data(json_file, account_list):
