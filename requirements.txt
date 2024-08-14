@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 python-dotenv >= 1.0.1
 pandas
 jupyter
@@ -9,3 +10,19 @@ aiofiles
 tqdm
 pymongo
 requests
+=======
+aiofiles >= 24.1.0
+black >= 24.8.0
+isort >= 5.13.2
+jupyter >= 1.0
+matplotlib >= 3.9.1.post1
+mypy >= 1.11.1
+numpy >= 2.0.1
+pandas >= 2.2.2
+pymongo >= 4.8.0
+pytest >= 8.3.2
+requests >= 2.32.3
+ruff >= 0.5.6
+scikit-learn >= 1.5.1
+tqdm >= 4.66.5
+>>>>>>> master
