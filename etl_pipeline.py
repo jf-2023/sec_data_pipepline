@@ -7,9 +7,6 @@ from pstats import SortKey
 import pandas as pd
 import requests
 
-pd.set_option("display.max_rows", None)  # Display all rows
-pd.set_option("display.max_columns", None)  # Display all columns
-
 
 def format_values(num):
     """
@@ -85,7 +82,7 @@ def fetch_sec_api(cik_str):
 
 def clean_company_data(json_file, account_list):
     """
-    clean company json data and return cleaned df
+    clean company JSON data and return a list of DataFrames
     :param json_file: dict: financial data for company
     :param account_list: list of account that user would like to add to df e.g 'Assets', 'Liabilities', etc.
     :return: list: list of dataframes for unique accounts
@@ -97,13 +94,13 @@ def clean_company_data(json_file, account_list):
             df = pd.DataFrame.from_dict(acc_data)
             df = df[df["fp"] == "FY"]
             df["year"] = pd.to_datetime(df["end"]).dt.year
-            df.drop_duplicates(subset=["year"], keep="last", inplace=True)
+            df = df.drop_duplicates(subset=["year"], keep="last")
             df = df[["year", "val"]]
-            df.rename(columns={"val": account}, inplace=True)
+            df = df.rename(columns={"val": account})
             company_dfs.append(df)
         except KeyError as e:
             print(f"df could not be processed for: {e}")
-            company_dfs.append({})
+            company_dfs.append(pd.DataFrame({}))
     return company_dfs
 
 
@@ -124,45 +121,36 @@ def drop_columns(cleaned_df, drop_list):
     """Drop specified columns in drop_list from cleaned_df"""
     for col in drop_list:
         try:
-            cleaned_df.drop(columns=[col], inplace=True)
+            cleaned_df = cleaned_df.drop(columns=[col])
         except KeyError as e:
             print(f"Cannot drop: {e}")
     return cleaned_df
 
 
-def rename_columns(cleaned_df, rename_dict):
+def add_extra_columns(cleaned_df):
     """
-    Rename specified columns in cleaned_df
-    :param cleaned_df:
-    :param rename_dict: key is old name, value is new name e.g. {'original_name': 'rename_value'}
+    Adds 'valuation', 'ac/l', and 'cf/l' columns to the DataFrame where:
+    - EARNINGS_MULTIPLIER is an arbitray multiple used to estimate company value based on future earnings.
+    - 'valuation': (YEARS_TO_RECOVER_RETURN * CashFlows) + Cash - LongTermDebt
+    - 'ac/l': Ratio of AssetsCurrent to Liabilities.
+    - 'cf/l': Ratio of CashFlows to Liabilities.
     """
-    try:
-        cleaned_df.rename(columns=rename_dict, inplace=True)
-    except KeyError as e:
-        print(f"Cannot rename: {e}")
-    return cleaned_df
-
-
-def add_valuation1_col(cleaned_df):
-    """Add valuation column to final df"""
+    # Add 'valuation' column
+    EARNINGS_MULTIPLIER = 20
     cleaned_df["valuation"] = (
-        (20 * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
+        (EARNINGS_MULTIPLIER * cleaned_df["CashFlows"])
+        + cleaned_df["Cash"]
+        - cleaned_df["LongTermDebt"]
     )
-    valuation_df = cleaned_df
-    return valuation_df
 
-
-def add_current_assets_to_liabilities_ratio(cleaned_df):
-    """Add ratio of AssetsCurrent/Liabilities column named ac/l to final df"""
+    # Add 'ac/l' column
     cleaned_df["ac/l"] = round(
         cleaned_df["AssetsCurrent"] / cleaned_df["Liabilities"], 2
     )
-    return cleaned_df
 
-
-def add_cf_to_liabilities_ratio(cleaned_df):
-    """Add ratio of CashFlows/Liabilities column named cf/l to final df"""
+    # Add 'cf/l' column
     cleaned_df["cf/l"] = round(cleaned_df["CashFlows"] / cleaned_df["Liabilities"], 2)
+
     return cleaned_df
 
 
@@ -188,13 +176,13 @@ def main():
     company_data = fetch_sec_api(comp_cik)
     clean_df_list = clean_company_data(company_data, specified_accounts)
     result = merge_final_df(clean_df_list)
-    result = rename_columns(result, accounts_to_rename)
-    result = add_valuation1_col(result)
-    result = add_cf_to_liabilities_ratio(result)
-    result = add_current_assets_to_liabilities_ratio(result)
+    result = result.rename(columns=accounts_to_rename)
+    result = add_extra_columns(result)
     result = drop_columns(result, accounts_to_drop)
     result_df = _format_values(result)
-    print(result_df)
+
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        print(result_df)
 
     end_time = time.perf_counter()
     print(f"\nCode Runtime: {end_time - start_time: .2f}s\n")
