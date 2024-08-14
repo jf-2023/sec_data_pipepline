@@ -9,20 +9,30 @@ import requests
 
 
 def format_values(num):
-    """To make data more readable(i.e. 1230000000 => 1.23B)"""
-    if abs(num) >= 1e12:
-        return "{:.2f}T".format(num / 1e12)
-    elif abs(num) >= 1e9:
-        return "{:.2f}B".format(num / 1e9)
-    elif abs(num) >= 1e6:
-        return "{:.2f}M".format(num / 1e6)
-    else:
-        return num
+    """
+    To make data more readable
+
+    Examples:
+    >>> format_values(1_230_000_000_000)
+    '1.23T'
+    >>> format_values(4_560_000_000)
+    '4.56B'
+    >>> format_values(7_890_000)
+    '7.89M'
+    >>> format_values(123)
+    '123'
+    >>> format_values(-7_890_000_000)
+    '-7.89B'
+    """
+    format_tuples = [(1e12, "T"), (1e9, "B"), (1e6, "M")]
+    for threshold, suffix in format_tuples:
+        if abs(num) >= threshold:
+            return f"{num / threshold:.2f}{suffix}"
+    return num
 
 
-def convert_df_to_str_data(merged_df):
-    final_df = merged_df.map(format_values)
-    return final_df
+def _format_values(merged_df):
+    return merged_df.map(format_values)
 
 
 def fetch_cik(company_name=None):
@@ -169,7 +179,7 @@ def main():
     result = result.rename(columns=accounts_to_rename)
     result = add_extra_columns(result)
     result = drop_columns(result, accounts_to_drop)
-    result_df = convert_df_to_str_data(result)
+    result_df = _format_values(result)
 
     with pd.option_context("display.max_rows", None, "display.max_columns", None):
         print(result_df)
