@@ -9,12 +9,13 @@ Current issues in cleaning the SEC API data arise from the nature of accounting 
 
 This module is currently in progress until a clear and concise method to handle the different data routes is found.
 """
+
 import pandas as pd
 
 
 # Placeholder functions for data cleaning
 def prep_data(json_data: dict) -> dict:
-    """ Parse json_data get 'us-gaap' or 'ifrs-full' object """
+    """Parse json_data get 'us-gaap' or 'ifrs-full' object"""
     try:
         data = json_data.get("facts", {})
         if "us-gaap" in data:
@@ -30,15 +31,15 @@ def prep_data(json_data: dict) -> dict:
 
 
 def get_df(data: dict, account: str) -> pd.DataFrame:
-    """ Clean company json data from fetch_file() and return a pandas DataFrame. """
+    """Clean company json data from fetch_file() and return a pandas DataFrame."""
     try:
-        acc_data = data[account]['units']['USD']
+        acc_data = data[account]["units"]["USD"]
         df = pd.DataFrame.from_dict(acc_data)
-        df = df[df['fp'] == "FY"]
-        df['year'] = pd.to_datetime(df['end']).dt.year
-        df.drop_duplicates(subset=['year'], keep="last", inplace=True)
-        df = df[['year', 'val']]
-        df.rename(columns={'val': account}, inplace=True)
+        df = df[df["fp"] == "FY"]
+        df["year"] = pd.to_datetime(df["end"]).dt.year
+        df.drop_duplicates(subset=["year"], keep="last", inplace=True)
+        df = df[["year", "val"]]
+        df.rename(columns={"val": account}, inplace=True)
         return df
     except KeyError as e:
         print(f"df could not be processed for: {e}")
@@ -58,30 +59,39 @@ def get_liabilities_df(prepped_json: dict) -> pd.DataFrame:
 def get_equity_df(prepped_json: dict) -> pd.DataFrame:
     equity_df = get_df(prepped_json, "StockholdersEquity")
     if equity_df == pd.DataFrame({}):
-        equity_df = get_df(prepped_json, "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest")
+        equity_df = get_df(
+            prepped_json,
+            "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+        )
     return equity_df
 
 
-def merge_final_df(assets_df: pd.DataFrame, equity_df: pd.DataFrame, liabilities_df: pd.DataFrame) -> pd.DataFrame:
-    """ Merge assets, equity, and liabilities DataFrames."""
-    merged_df = pd.merge(assets_df, equity_df, on='year', how='outer')
+def merge_final_df(
+    assets_df: pd.DataFrame, equity_df: pd.DataFrame, liabilities_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Merge assets, equity, and liabilities DataFrames."""
+    merged_df = pd.merge(assets_df, equity_df, on="year", how="outer")
     if liabilities_df == pd.DataFrame({}):
         merged_df["Liabilities"] = merged_df["Assets"] - merged_df["Equity"]
     else:
-        merged_df = pd.merge(merged_df, liabilities_df, on='year', how='outer')
+        merged_df = pd.merge(merged_df, liabilities_df, on="year", how="outer")
 
     return merged_df
 
 
 def clean_company_data_using_dataframes(data_json: dict) -> dict:
     """
-        Clean company json data using pandas DataFrames and return a dictionary of the three
-        fundamental accounting categories 'Assets', 'Liabilities', and 'Equity'.
+    Clean company json data using pandas DataFrames and return a dictionary of the three
+    fundamental accounting categories 'Assets', 'Liabilities', and 'Equity'.
 
-        :param data_json: dict: Financial data for the company.
-        :return dict: Cleaned financial data.
+    :param data_json: dict: Financial data for the company.
+    :return dict: Cleaned financial data.
     """
-    final_df = merge_final_df(get_assets_df(data_json), get_equity_df(data_json), get_liabilities_df(data_json))
+    final_df = merge_final_df(
+        get_assets_df(data_json),
+        get_equity_df(data_json),
+        get_liabilities_df(data_json),
+    )
     return final_df.to_dict()
 
 
