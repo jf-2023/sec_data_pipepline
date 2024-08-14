@@ -5,6 +5,7 @@ import pandas as pd
 import cProfile
 import pstats
 from pstats import SortKey
+import logging
 
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
@@ -149,10 +150,22 @@ def add_cf_to_liabilities_ratio(cleaned_df):
     return cleaned_df
 
 
-def main():
-    start_time = time.perf_counter()
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    tick = "META"
+
+def elapsed(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logging.info(f"{func.__name__}() runtime: {elapsed_time:.2f}s")
+        return result
+    return wrapper
+
+
+@elapsed
+def process_financial_data(ticker = "META"):
     specified_accounts = [
         'NetCashProvidedByUsedInOperatingActivities',
         'CashAndCashEquivalentsAtCarryingValue',
@@ -171,7 +184,7 @@ def main():
             'CashAndCashEquivalentsAtCarryingValue': 'Cash'
         }
 
-    comp_cik = fetch_cik(tick)
+    comp_cik = fetch_cik(ticker)
     company_data = fetch_sec_api(comp_cik)
     clean_df_list = clean_company_data(company_data, specified_accounts)
     result = merge_final_df(clean_df_list)
@@ -181,15 +194,9 @@ def main():
     result = add_current_assets_to_liabilities_ratio(result)
     result = drop_columns(result, accounts_to_drop)
     result_df = convert_df_to_str_data(result)
-    print(result_df)
-
-    end_time = time.perf_counter()
-    print(f"\nCode Runtime: {end_time - start_time: .2f}s\n")
+    return result_df
 
 
 if __name__ == "__main__":
-    with cProfile.Profile() as profile:
-        main()
-
-    p = pstats.Stats(profile)
-    p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats('main.py', 6)
+    financials_df = process_financial_data(ticker="META")
+    print(financials_df)
