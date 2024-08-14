@@ -106,9 +106,7 @@ def clean_company_data(json_file, account_list):
 
 def merge_final_df(df_list):
     """merge list of dfs and return df"""
-    cleaned_df_list = [
-        df for df in df_list if isinstance(df, pd.DataFrame) and not df.empty
-    ]
+    cleaned_df_list = [df for df in df_list if not df.empty]
 
     merged_df = cleaned_df_list[0]
     for cdf in cleaned_df_list[1:]:

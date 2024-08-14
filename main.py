@@ -1,14 +1,12 @@
-import requests
+import logging
 import random
 import time
-import pandas as pd
-import cProfile
-import pstats
-from pstats import SortKey
-import logging
 
-pd.set_option('display.max_rows', None)  # Display all rows
-pd.set_option('display.max_columns', None)  # Display all columns
+import pandas as pd
+import requests
+
+pd.set_option("display.max_rows", None)  # Display all rows
+pd.set_option("display.max_columns", None)  # Display all columns
 
 
 def format_values(num):
@@ -36,7 +34,7 @@ def fetch_cik(company_name=None):
     :param company_name: str, user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
     :return: str, CIK id of the specified or random company. Must be a width of 10 characters.
     """
-    headers = {'User-Agent': 'YourEmail@example.com'}
+    headers = {"User-Agent": "YourEmail@example.com"}
     get_url = "https://www.sec.gov/files/company_tickers.json"
 
     try:
@@ -65,33 +63,32 @@ def fetch_sec_api(cik_str):
     Raises an exception if the request fails.
     """
     try:
-        headers = {'User-Agent': 'YourEmail@example.com'}
+        headers = {"User-Agent": "YourEmail@example.com"}
         get_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik_str}.json"
         sec_data = requests.get(get_url, headers=headers)
         sec_data.raise_for_status()
         return sec_data.json()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
-                
 
 
 def clean_company_data(json_file, account_list):
     """
-        clean company json data and return cleaned df
-        :param json_file: dict: financial data for company
-        :param account_list: list of account that user would like to add to df e.g 'Assets', 'Liabilities', etc.
-        :return: list: list of dataframes for unique accounts
+    clean company json data and return cleaned df
+    :param json_file: dict: financial data for company
+    :param account_list: list of account that user would like to add to df e.g 'Assets', 'Liabilities', etc.
+    :return: list: list of dataframes for unique accounts
     """
     company_dfs = []
     for account in account_list:
         try:
-            acc_data = json_file['facts']['us-gaap'][account]['units']['USD']
+            acc_data = json_file["facts"]["us-gaap"][account]["units"]["USD"]
             df = pd.DataFrame.from_dict(acc_data)
-            df = df[df['fp'] == "FY"]
-            df['year'] = pd.to_datetime(df['end']).dt.year
-            df.drop_duplicates(subset=['year'], keep="last", inplace=True)
-            df = df[['year', 'val']]
-            df.rename(columns={'val': account}, inplace=True)
+            df = df[df["fp"] == "FY"]
+            df["year"] = pd.to_datetime(df["end"]).dt.year
+            df.drop_duplicates(subset=["year"], keep="last", inplace=True)
+            df = df[["year", "val"]]
+            df.rename(columns={"val": account}, inplace=True)
             company_dfs.append(df)
         except KeyError as e:
             print(f"df could not be processed for: {e}")
@@ -100,18 +97,18 @@ def clean_company_data(json_file, account_list):
 
 
 def merge_final_df(df_list):
-    """ merge list of dfs and return df """
+    """merge list of dfs and return df"""
     cleaned_df_list = [df for df in df_list if not df.empty]
 
     merged_df = cleaned_df_list[0]
     for cdf in cleaned_df_list[1:]:
-        merged_df = pd.merge(merged_df, cdf, on='year', how='outer')
+        merged_df = pd.merge(merged_df, cdf, on="year", how="outer")
 
     return merged_df
 
 
 def drop_columns(cleaned_df, drop_list):
-    """ Drop specified columns in drop_list from cleaned_df """
+    """Drop specified columns in drop_list from cleaned_df"""
     for col in drop_list:
         try:
             cleaned_df.drop(columns=[col], inplace=True)
@@ -134,25 +131,31 @@ def rename_columns(cleaned_df, rename_dict):
 
 
 def add_valuation1_col(cleaned_df):
-    """ Add valuation column to final df """
-    cleaned_df["valuation"] = (20 * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
+    """Add valuation column to final df"""
+    cleaned_df["valuation"] = (
+        (20 * cleaned_df["CashFlows"]) + cleaned_df["Cash"] - cleaned_df["LongTermDebt"]
+    )
     valuation_df = cleaned_df
     return valuation_df
 
 
 def add_current_assets_to_liabilities_ratio(cleaned_df):
-    """ Add ratio of AssetsCurrent/Liabilities column named ac/l to final df """
-    cleaned_df["ac/l"] = round(cleaned_df["AssetsCurrent"] / cleaned_df["Liabilities"], 2)
+    """Add ratio of AssetsCurrent/Liabilities column named ac/l to final df"""
+    cleaned_df["ac/l"] = round(
+        cleaned_df["AssetsCurrent"] / cleaned_df["Liabilities"], 2
+    )
     return cleaned_df
 
 
 def add_cf_to_liabilities_ratio(cleaned_df):
-    """ Add ratio of CashFlows/Liabilities column named cf/l to final df """
+    """Add ratio of CashFlows/Liabilities column named cf/l to final df"""
     cleaned_df["cf/l"] = round(cleaned_df["CashFlows"] / cleaned_df["Liabilities"], 2)
     return cleaned_df
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 
 def elapsed(func):
@@ -163,28 +166,25 @@ def elapsed(func):
         elapsed_time = end_time - start_time
         logging.info(f"{func.__name__}() runtime: {elapsed_time:.2f}s")
         return result
+
     return wrapper
 
 
 @elapsed
-def process_financial_data(ticker = "META"):
+def process_financial_data(ticker="META"):
     specified_accounts = [
-        'NetCashProvidedByUsedInOperatingActivities',
-        'CashAndCashEquivalentsAtCarryingValue',
-        'Liabilities',
-        'AssetsCurrent',
-        'Revenues',
-        'LongTermDebt'
-    ]
-    accounts_to_drop = [
-        "Revenues",
+        "NetCashProvidedByUsedInOperatingActivities",
+        "CashAndCashEquivalentsAtCarryingValue",
+        "Liabilities",
         "AssetsCurrent",
-        "Liabilities"
+        "Revenues",
+        "LongTermDebt",
     ]
+    accounts_to_drop = ["Revenues", "AssetsCurrent", "Liabilities"]
     accounts_to_rename = {
-            'NetCashProvidedByUsedInOperatingActivities': 'CashFlows',
-            'CashAndCashEquivalentsAtCarryingValue': 'Cash'
-        }
+        "NetCashProvidedByUsedInOperatingActivities": "CashFlows",
+        "CashAndCashEquivalentsAtCarryingValue": "Cash",
+    }
 
     comp_cik = fetch_cik(ticker)
     company_data = fetch_sec_api(comp_cik)
