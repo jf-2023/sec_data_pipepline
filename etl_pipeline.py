@@ -1,11 +1,15 @@
-import cProfile
-import pstats
+import logging
+import os
 import random
 import time
-from pstats import SortKey
 
 import pandas as pd
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+user_agent = os.getenv("EMAIL_ADDRESS")
 
 
 def format_values(num):
@@ -35,7 +39,7 @@ def _format_values(merged_df):
     return merged_df.map(format_values)
 
 
-def fetch_cik(company_name=None):
+def fetch_cik(company_name: str = "") -> str:
     """
     GET CIK id for the specified company name. If no company name is passed,
     the function will return a CIK id for a random company.
@@ -43,7 +47,7 @@ def fetch_cik(company_name=None):
     :param company_name: str, user-specified company ticker symbol, e.g., 'AMZN' for Amazon.
     :return: str, CIK id of the specified or random company. Must be a width of 10 characters.
     """
-    headers = {"User-Agent": "YourEmail@example.com"}
+    headers = {"User-Agent": user_agent}
     get_url = "https://www.sec.gov/files/company_tickers.json"
 
     try:
@@ -51,7 +55,7 @@ def fetch_cik(company_name=None):
         tickers_json = tickers_data.json()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
-        return None
+        return ""
 
     company_name = str(company_name.upper())
     if company_name:
@@ -59,7 +63,7 @@ def fetch_cik(company_name=None):
             if obj["ticker"] == company_name:
                 return f'{obj["cik_str"]:010}'
         print(f"Company with ticker {company_name} not found.")
-        return None
+        return ""
     else:
         random_obj = random.choice(list(tickers_json.values()))
         return f'{random_obj["cik_str"]:010}'
@@ -68,16 +72,17 @@ def fetch_cik(company_name=None):
 def fetch_sec_api(cik_str):
     """
     send GET request to the EDGAR database where SEC filings are stored.
-    returns json
+    Returns the response data as a JSON object if the request is successful.
+    Raises an exception if the request fails.
     """
     try:
-        headers = {"User-Agent": "YourEmail@example.com"}
+        headers = {"User-Agent": user_agent}
         get_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik_str}.json"
         sec_data = requests.get(get_url, headers=headers)
+        sec_data.raise_for_status()
         return sec_data.json()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
-        return
 
 
 def clean_company_data(json_file, account_list):
@@ -152,10 +157,25 @@ def add_extra_columns(cleaned_df):
     return cleaned_df
 
 
-def main():
-    start_time = time.perf_counter()
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
-    tick = "META"
+
+def elapsed(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logging.info(f"{func.__name__}() runtime: {elapsed_time:.3f}s")
+        return result
+
+    return wrapper
+
+
+@elapsed
+def process_financial_data(ticker="META"):
     specified_accounts = [
         "NetCashProvidedByUsedInOperatingActivities",
         "CashAndCashEquivalentsAtCarryingValue",
@@ -170,7 +190,7 @@ def main():
         "CashAndCashEquivalentsAtCarryingValue": "Cash",
     }
 
-    comp_cik = fetch_cik(tick)
+    comp_cik = fetch_cik(ticker)
     company_data = fetch_sec_api(comp_cik)
     clean_df_list = clean_company_data(company_data, specified_accounts)
     result = merge_final_df(clean_df_list)
@@ -179,16 +199,9 @@ def main():
     result = drop_columns(result, accounts_to_drop)
     result_df = _format_values(result)
 
-    with pd.option_context("display.max_rows", None, "display.max_columns", None):
-        print(result_df)
-
-    end_time = time.perf_counter()
-    print(f"\nCode Runtime: {end_time - start_time: .2f}s\n")
+    return result_df
 
 
 if __name__ == "__main__":
-    with cProfile.Profile() as profile:
-        main()
-
-    p = pstats.Stats(profile)
-    p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats("main.py", 6)
+    financials_df = process_financial_data(ticker="META")
+    print(financials_df)
