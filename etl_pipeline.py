@@ -122,16 +122,6 @@ def merge_final_df(df_list: list[pd.DataFrame]) -> pd.DataFrame:
     return merged_df
 
 
-def drop_columns(cleaned_df: pd.DataFrame, drop_list: list[str]) -> pd.DataFrame:
-    """Drop specified columns in drop_list from cleaned_df"""
-    for col in drop_list:
-        try:
-            cleaned_df = cleaned_df.drop(columns=[col])
-        except KeyError as e:
-            print(f"Cannot drop: {e}")
-    return cleaned_df
-
-
 def add_extra_columns(cleaned_df: pd.DataFrame) -> pd.DataFrame:
     """
     Adds 'valuation', 'ac/l', and 'cf/l' columns to the DataFrame where:
@@ -198,7 +188,7 @@ def process_financial_data(ticker: str = "META") -> pd.DataFrame:
     result = merge_final_df(clean_df_list)
     result = result.rename(columns=accounts_to_rename)
     result = add_extra_columns(result)
-    result = drop_columns(result, accounts_to_drop)
+    result = result.drop(columns=accounts_to_drop)
     result_df = _format_values(result)
 
     return result_df
