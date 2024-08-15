@@ -12,7 +12,7 @@ load_dotenv()
 user_agent = os.getenv("EMAIL_ADDRESS")
 
 
-def format_values(num):
+def format_values(num: int) -> str:
     """
     To make data more readable
 
@@ -32,10 +32,10 @@ def format_values(num):
     for threshold, suffix in format_tuples:
         if abs(num) >= threshold:
             return f"{num / threshold:.2f}{suffix}"
-    return num
+    return str(num)
 
 
-def _format_values(merged_df):
+def _format_values(merged_df: pd.DataFrame) -> pd.DataFrame:
     return merged_df.map(format_values)
 
 
@@ -57,7 +57,7 @@ def fetch_cik(company_name: str = "") -> str:
         print(f"Request failed: {e}")
         return ""
 
-    company_name = str(company_name.upper())
+    company_name = company_name.upper()
     if company_name:
         for obj in tickers_json.values():
             if obj["ticker"] == company_name:
@@ -69,7 +69,8 @@ def fetch_cik(company_name: str = "") -> str:
         return f'{random_obj["cik_str"]:010}'
 
 
-def fetch_sec_api(cik_str):
+# Fix this function
+def fetch_sec_api(cik_str: str) -> dict:
     """
     send GET request to the EDGAR database where SEC filings are stored.
     Returns the response data as a JSON object if the request is successful.
@@ -83,9 +84,10 @@ def fetch_sec_api(cik_str):
         return sec_data.json()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
+        return {}
 
 
-def clean_company_data(json_file, account_list):
+def clean_company_data(json_file: dict, account_list: list[str]) -> list[pd.DataFrame]:
     """
     clean company JSON data and return a list of DataFrames
     :param json_file: dict: financial data for company
@@ -109,7 +111,7 @@ def clean_company_data(json_file, account_list):
     return company_dfs
 
 
-def merge_final_df(df_list):
+def merge_final_df(df_list: list[pd.DataFrame]) -> pd.DataFrame:
     """merge list of dfs and return df"""
     cleaned_df_list = [df for df in df_list if not df.empty]
 
@@ -120,7 +122,7 @@ def merge_final_df(df_list):
     return merged_df
 
 
-def drop_columns(cleaned_df, drop_list):
+def drop_columns(cleaned_df: pd.DataFrame, drop_list: list[str]) -> pd.DataFrame:
     """Drop specified columns in drop_list from cleaned_df"""
     for col in drop_list:
         try:
@@ -130,7 +132,7 @@ def drop_columns(cleaned_df, drop_list):
     return cleaned_df
 
 
-def add_extra_columns(cleaned_df):
+def add_extra_columns(cleaned_df: pd.DataFrame) -> pd.DataFrame:
     """
     Adds 'valuation', 'ac/l', and 'cf/l' columns to the DataFrame where:
     - EARNINGS_MULTIPLIER is an arbitray multiple used to estimate company value based on future earnings.
@@ -175,7 +177,7 @@ def elapsed(func):
 
 
 @elapsed
-def process_financial_data(ticker="META"):
+def process_financial_data(ticker: str = "META") -> pd.DataFrame:
     specified_accounts = [
         "NetCashProvidedByUsedInOperatingActivities",
         "CashAndCashEquivalentsAtCarryingValue",
