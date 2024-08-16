@@ -28,6 +28,7 @@ def prep_data(json_data: dict) -> dict:
         return data_object
     except KeyError as e:
         print(f"Could not parse: {e}")
+        return {}
 
 
 def get_df(data: dict, account: str) -> pd.DataFrame:
